@@ -45,6 +45,20 @@ NEXT_PLAYER = {
     1: 2,
     2: 1
 }
+OPPOSITE_PIT = {
+    'A1': 'B6',
+    'A2': 'B5',
+    'A3': 'B4',
+    'A4': 'B3',
+    'A5': 'B2',
+    'A6': 'B1',
+    'B1': 'A6',
+    'B2': 'A5',
+    'B3': 'A4',
+    'B4': 'A3',
+    'B5': 'A2',
+    'B6': 'A1'
+}
 
 
 def convert_move_to_pit(player, move):
@@ -84,6 +98,14 @@ def perceive_board(board_state, player):
         raise Exception('perceive_board: player not valid')
 
 
+def game_ended(board_state):
+    is_player1_board_empty = board_state['A1'] == 0 and board_state['A2'] == 0 and board_state['A3'] == 0 \
+                             and board_state['A4'] == 0 and board_state['A5'] == 0 and board_state['A6'] == 0
+    is_player2_board_empty = board_state['B1'] == 0 and board_state['B2'] == 0 and board_state['B3'] == 0 \
+                             and board_state['B4'] == 0 and board_state['B5'] == 0 and board_state['B6'] == 0
+    return is_player1_board_empty or is_player2_board_empty
+
+
 class MancalaBoard(Widget):
     # Label values to show
     pit_A1 = NumericProperty(0)
@@ -100,6 +122,8 @@ class MancalaBoard(Widget):
     pit_B5 = NumericProperty(0)
     pit_B6 = NumericProperty(0)
     pit_BS = NumericProperty(0)
+    hand = NumericProperty(0)
+    current_player = NumericProperty(1)
 
     def __init__(self, **kwargs):
         super(MancalaBoard, self).__init__(**kwargs)
@@ -134,16 +158,17 @@ class MancalaBoard(Widget):
         # print(self._board_state)
         # print(self._player_turn)
         # print(self._stone_in_hand)
-        self.update_pit_stones()
+        self.update_labels()
         if self._is_turn_processing:
             if self._stone_in_hand == 0:
                 # No more stone in hand, proceed to the next turn
                 self._is_turn_processing = False
-                # Check extra turn
-                if current_player_get_extra_turn(self._player_turn, self._current_pit):
-                    self._player_turn = self._player_turn
-                else:
-                    self._player_turn = NEXT_PLAYER[self._player_turn]
+                # Check game end
+                if game_ended(self._board_state):
+                    self._player_turn = 0
+                    return
+                self.process_capture()
+                self.next_player_turn()
                 # get the player's move
                 if self._player_turn == 1:
                     perceived_board_state = perceive_board(self._board_state, self._player_turn)
@@ -164,7 +189,32 @@ class MancalaBoard(Widget):
                 self._board_state[self._current_pit] += 1
                 self._stone_in_hand -= 1
 
-    def update_pit_stones(self):
+    def process_capture(self):
+        if self._player_turn == 1 \
+                and self._current_pit.startswith('A') \
+                and not self._current_pit.endswith('S') \
+                and self._board_state[self._current_pit] == 1 \
+                and self._board_state[OPPOSITE_PIT[self._current_pit]] > 0:
+            self._board_state['AS'] += self._board_state[OPPOSITE_PIT[self._current_pit]] + 1
+            self._board_state[OPPOSITE_PIT[self._current_pit]] = 0
+            self._board_state[self._current_pit] = 0
+        elif self._player_turn == 2 \
+                and self._current_pit.startswith('B') \
+                and not self._current_pit.endswith('S') \
+                and self._board_state[self._current_pit] == 1 \
+                and self._board_state[OPPOSITE_PIT[self._current_pit]] > 0:
+            self._board_state['BS'] += self._board_state[OPPOSITE_PIT[self._current_pit]] + 1
+            self._board_state[OPPOSITE_PIT[self._current_pit]] = 0
+            self._board_state[self._current_pit] = 0
+
+    def next_player_turn(self):
+        if (self._player_turn == 1 and self._current_pit == 'AS') or (
+                self._player_turn == 2 and self._current_pit == 'BS'):
+            self._player_turn = self._player_turn
+        else:
+            self._player_turn = NEXT_PLAYER[self._player_turn]
+
+    def update_labels(self):
         self.pit_A1 = self._board_state['A1']
         self.pit_A2 = self._board_state['A2']
         self.pit_A3 = self._board_state['A3']
@@ -179,6 +229,8 @@ class MancalaBoard(Widget):
         self.pit_B5 = self._board_state['B5']
         self.pit_B6 = self._board_state['B6']
         self.pit_BS = self._board_state['BS']
+        self.hand = self._stone_in_hand
+        self.current_player = self._player_turn
 
 
 class MancalaApp(App):

@@ -142,3 +142,31 @@
         center_y : root.height / 2 - 60
         text: str(root.pit_A6)
         color: [0,0,0,1]
+
+    Label:
+        font_size: 30
+        top : root.top - 100
+        center_x: 150
+        text: 'Stones in hand:'
+        color: [1,1,1,1]
+
+    Label:
+        font_size: 30
+        top : root.top - 100
+        center_x: 300
+        text: str(root.hand)
+        color: [1,1,1,1]
+
+    Label:
+        font_size: 30
+        top : root.top - 100
+        center_x: root.width - 220
+        text: "Current Player:"
+        color: [1,1,1,1]
+
+    Label:
+        font_size: 30
+        top : root.top - 100
+        center_x: root.width - 70
+        text: "P" + str(root.current_player)
+        color: [1,1,1,1]
